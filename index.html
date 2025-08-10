@@ -3,12 +3,9 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
-  <title>Tetris — мобильная версия, тач‑кнопки, звук и рекорды</title>
+  <title>Tetris — мобильная версия, свайпы, тач‑кнопки, звук и рекорды</title>
   <style>
-    :root {
-      --bg: #0b1020; --panel: #0f1530; --text: #e7ecff; --muted: #9aa4c7; --grid: #1a2144;
-      --accent: #5dd6ff; --ok: #38ef7d; --warn: #ffd166; --shadow: 0 10px 30px rgba(0,0,0,.35);
-    }
+    :root { --bg: #0b1020; --panel: #0f1530; --text: #e7ecff; --muted: #9aa4c7; --grid: #1a2144; --accent: #5dd6ff; --ok: #38ef7d; --warn: #ffd166; --shadow: 0 10px 30px rgba(0,0,0,.35); }
     *{box-sizing:border-box}
     html,body{height:100%}
     body{margin:0;font-family:ui-sans-serif,-apple-system,Segoe UI,Roboto,Inter,Arial,"Noto Sans","Helvetica Neue",system-ui,sans-serif;color:var(--text);background:radial-gradient(1200px 600px at 20% -20%, #1a2360 0%, rgba(26,35,96,0) 60%), var(--bg);display:grid;place-items:center;touch-action:none}
@@ -52,16 +49,8 @@
 
     .dedication{font-size:16px;font-weight:800;color:#ffd166;text-align:center;background:rgba(0,0,0,.35);padding:6px 10px;border-radius:10px;box-shadow:0 2px 6px rgba(0,0,0,.4)}
 
-    /* Мобильные улучшения */
     @media (max-width: 900px){.wrap{grid-template-columns:1fr}.side{grid-template-columns:1fr}}
-    @media (max-width: 520px){
-      .panel h2{font-size:16px}
-      .kv b{font-size:18px}
-      .mini{height:100px}
-      .tbtn{padding:10px 8px}
-      .tbtn.big{padding:12px 8px}
-      .side{min-width:unset}
-    }
+    @media (max-width: 520px){ .panel h2{font-size:16px} .kv b{font-size:18px} .mini{height:100px} .tbtn{padding:10px 8px} .tbtn.big{padding:12px 8px} .side{min-width:unset} }
   </style>
 </head>
 <body>
@@ -143,19 +132,10 @@
 
   <script>
   // ========= Константы =========
-  const COLS = 10, ROWS = 20;
-  let SIZE = 32; // делаем динамическим для мобильной версии
+  const COLS = 10, ROWS = 20; let SIZE = 32; // динамический размер клетки
   const DROP_BASE_MS = 1000, SPEED_FACTOR = 0.85;
   const COLORS = { I:'#5dd6ff', J:'#6d88ff', L:'#ffb15d', O:'#ffe45d', S:'#6dff8a', T:'#c07dff', Z:'#ff6d7a', ghost:'rgba(255,255,255,0.18)' };
-  const SHAPES = {
-    I:[[0,0,0,0],[1,1,1,1],[0,0,0,0],[0,0,0,0]],
-    J:[[1,0,0],[1,1,1],[0,0,0]],
-    L:[[0,0,1],[1,1,1],[0,0,0]],
-    O:[[1,1],[1,1]],
-    S:[[0,1,1],[1,1,0],[0,0,0]],
-    T:[[0,1,0],[1,1,1],[0,0,0]],
-    Z:[[1,1,0],[0,1,1],[0,0,0]],
-  };
+  const SHAPES = { I:[[0,0,0,0],[1,1,1,1],[0,0,0,0],[0,0,0,0]], J:[[1,0,0],[1,1,1],[0,0,0]], L:[[0,0,1],[1,1,1],[0,0,0]], O:[[1,1],[1,1]], S:[[0,1,1],[1,1,0],[0,0,0]], T:[[0,1,0],[1,1,1],[0,0,0]], Z:[[1,1,0],[0,1,1],[0,0,0]] };
   const SCORES = {1:100,2:300,3:500,4:800};
 
   // ========= Утилиты =========
@@ -185,15 +165,13 @@
   // Динамический ресайз под мобильные
   function resizeBoard(){
     const dpr = Math.max(1, Math.floor(window.devicePixelRatio||1));
-    // Доступная ширина: если левая колонка одна — почти весь экран; иначе ширина канваса контейнера
     const isNarrow = window.innerWidth <= 900;
-    const maxW = isNarrow ? Math.min(window.innerWidth-32, 520) : 320; // ограничим, чтобы не распухал
-    const maxH = isNarrow ? Math.min(window.innerHeight-220, 800) : 640; // оставим место под панели
+    const maxW = isNarrow ? Math.min(window.innerWidth-32, 520) : 320;
+    const maxH = isNarrow ? Math.min(window.innerHeight-220, 800) : 640;
     const cellByW = Math.floor(maxW / COLS);
     const cellByH = Math.floor(maxH / ROWS);
-    SIZE = Math.max(14, Math.min(40, Math.min(cellByW, cellByH))); // 14–40 px
+    SIZE = Math.max(14, Math.min(40, Math.min(cellByW, cellByH)));
     const w = COLS*SIZE, h = ROWS*SIZE;
-    // физический размер с учётом DPR
     boardCanvas.width = w * dpr; boardCanvas.height = h * dpr;
     boardCanvas.style.width = w+"px"; boardCanvas.style.height = h+"px";
     ctx.setTransform(dpr,0,0,dpr,0,0);
@@ -233,7 +211,7 @@
   function addRecord(name,scoreV,linesV,levelV){const list=loadLB();const rec={name:String(name||'Игрок').slice(0,24),score:scoreV,lines:linesV,level:levelV,date:new Date().toISOString()};list.push(rec);list.sort((a,b)=>b.score-a.score);saveLB(list.slice(0,10));renderLB()}
   function renderLB(){const list=loadLB();const ol=$('#score-list');ol.innerHTML='';list.forEach((r)=>{const li=document.createElement('li');const d=new Date(r.date);const ds=d.toLocaleDateString();li.textContent=`${r.name} — ${r.score} очк., ${r.lines} линий, ур. ${r.level} · ${ds}`;ol.appendChild(li)})}
 
-  // ========= Ввод =========
+  // ========= Клавиатура =========
   const Key={Left:'ArrowLeft',Right:'ArrowRight',Down:'ArrowDown',Up:'ArrowUp',Space:' ',Z:'z',X:'x',C:'c',P:'p',R:'r',M:'m'};
   document.addEventListener('keydown',(e)=>{
     const k=e.key; const low=k.toLowerCase();
@@ -269,6 +247,22 @@
     btn.addEventListener('mouseleave',()=>stopHold());
   });
 
+  // ========= Жесты (свайпы/тапы) на самом поле =========
+  (function setupGestures(){
+    const el = boardCanvas;
+    let startX=0,startY=0,startT=0,lastX=0,accX=0,accY=0, moved=false, longPressTimer=null, longPressFired=false; let lastTap=0;
+    const now=()=>performance.now();
+    const stepX=()=>Math.max(12, Math.floor(SIZE*0.6));
+    const stepY=()=>Math.max(12, Math.floor(SIZE*0.6));
+    function onStart(e){ const t=e.touches?e.touches[0]:e; startX=lastX=t.clientX; startY=t.clientY; accX=0; accY=0; startT=now(); moved=false; longPressFired=false; clearTimeout(longPressTimer); longPressTimer=setTimeout(()=>{ if(!moved && !gameOver && !paused){ hold(); longPressFired=true; } }, 400); SND.ensure(); e.preventDefault(); }
+    function onMove(e){ const t=e.touches?e.touches[0]:e; const dx=t.clientX-lastX; const dy=t.clientY-startY; accX+=dx; accY=dy; while(accX<=-stepX()){ if(tryMove(-1,0)){ SND.beep(330,.03);} accX+=stepX(); moved=true; } while(accX>=stepX()){ if(tryMove(1,0)){ SND.beep(330,.03);} accX-=stepX(); moved=true; } if(Math.abs(accY)>=stepY()){ if(accY>0){ softDrop(); moved=true; } } lastX=t.clientX; e.preventDefault(); }
+    function onEnd(e){ clearTimeout(longPressTimer); const dt=now()-startT; const touch=(e.changedTouches?e.changedTouches[0]:e); const dx=(touch.clientX||startX)-startX; const dy=(touch.clientY||startY)-startY; const absX=Math.abs(dx), absY=Math.abs(dy); const isFlickDown=(dt<180 && dy>Math.max(50, SIZE*1.5)); const isSwipeUp=(absY>Math.max(24, SIZE*0.8) && dy<0 && absY>absX); if(gameOver||paused){ return; } if(longPressFired){ return; } if(isFlickDown){ hardDrop(); e.preventDefault(); return; } if(isSwipeUp){ tryRotate(-1); e.preventDefault(); return; } if(!moved && absX<10 && absY<10){ const t=now(); if(t-lastTap<260){ hardDrop(); lastTap=0; } else { tryRotate(1); lastTap=t; } } e.preventDefault(); }
+    el.addEventListener('touchstart',onStart,{passive:false});
+    el.addEventListener('touchmove', onMove,{passive:false});
+    el.addEventListener('touchend',  onEnd,{passive:false});
+    el.addEventListener('touchcancel',onEnd,{passive:false});
+  })();
+
   // ========= Кнопки UI =========
   $('#btn-pause').addEventListener('click',()=>paused=!paused);
   $('#btn-restart').addEventListener('click',()=>restart());
@@ -284,7 +278,7 @@
 
   // ========= Инициализация =========
   function init(){resizeBoard(); updateSide(); renderLB(); requestAnimationFrame(loop)}
-  window.addEventListener('resize',()=>{const oldSize=SIZE; resizeBoard(); if(SIZE!==oldSize){ /* просто перерисуем; логика остаётся */ } });
+  window.addEventListener('resize',()=>{const oldSize=SIZE; resizeBoard(); if(SIZE!==oldSize){ /* просто перерисуем */ } });
   init();
 
   </script>
