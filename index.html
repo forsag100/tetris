@@ -3,10 +3,10 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
-  <title>Tetris — с тач‑кнопками, звуком и таблицей рекордов</title>
+  <title>Tetris — мобильная версия, тач‑кнопки, звук и рекорды</title>
   <style>
     :root {
-      --bg: #0b1020; --panel: #0f1530; --text: #e7ecff; --muted: #9aa4c7; --grid: #1a2144; --unit: 32px;
+      --bg: #0b1020; --panel: #0f1530; --text: #e7ecff; --muted: #9aa4c7; --grid: #1a2144;
       --accent: #5dd6ff; --ok: #38ef7d; --warn: #ffd166; --shadow: 0 10px 30px rgba(0,0,0,.35);
     }
     *{box-sizing:border-box}
@@ -14,7 +14,7 @@
     body{margin:0;font-family:ui-sans-serif,-apple-system,Segoe UI,Roboto,Inter,Arial,"Noto Sans","Helvetica Neue",system-ui,sans-serif;color:var(--text);background:radial-gradient(1200px 600px at 20% -20%, #1a2360 0%, rgba(26,35,96,0) 60%), var(--bg);display:grid;place-items:center;touch-action:none}
     .wrap{display:grid;grid-template-columns:1fr auto;gap:16px;padding:16px;width:min(100vw,1040px);align-items:start}
     .board-card{background:linear-gradient(180deg,rgba(255,255,255,.03),rgba(255,255,255,.02));border:1px solid rgba(255,255,255,.08);border-radius:16px;padding:12px;box-shadow:var(--shadow);position:relative}
-    canvas#board{display:block;background:linear-gradient(0deg, rgba(255,255,255,.02), rgba(255,255,255,.02)),repeating-linear-gradient(0deg,var(--grid) 0,var(--grid) 1px,transparent 1px,transparent var(--unit)),repeating-linear-gradient(90deg,var(--grid) 0,var(--grid) 1px,transparent 1px,transparent var(--unit));border-radius:8px;image-rendering:pixelated;image-rendering:crisp-edges}
+    canvas#board{display:block;background:linear-gradient(0deg, rgba(255,255,255,.02), rgba(255,255,255,.02)),repeating-linear-gradient(0deg,var(--grid) 0,var(--grid) 1px,transparent 1px,transparent 32px),repeating-linear-gradient(90deg,var(--grid) 0,var(--grid) 1px,transparent 1px,transparent 32px);border-radius:8px;image-rendering:pixelated;image-rendering:crisp-edges;max-width:100%;height:auto}
     .side{display:grid;gap:12px;min-width:300px}
     .panel{background:var(--panel);border:1px solid rgba(255,255,255,.08);border-radius:14px;padding:14px;box-shadow:var(--shadow)}
     .panel h2{margin:0 0 8px;font-size:18px;font-weight:800;letter-spacing:.2px}
@@ -50,10 +50,18 @@
     .scores ol{margin:0;padding-left:20px}
     .scores li{margin:2px 0}
 
-    /* Видимая подпись */
     .dedication{font-size:16px;font-weight:800;color:#ffd166;text-align:center;background:rgba(0,0,0,.35);padding:6px 10px;border-radius:10px;box-shadow:0 2px 6px rgba(0,0,0,.4)}
 
+    /* Мобильные улучшения */
     @media (max-width: 900px){.wrap{grid-template-columns:1fr}.side{grid-template-columns:1fr}}
+    @media (max-width: 520px){
+      .panel h2{font-size:16px}
+      .kv b{font-size:18px}
+      .mini{height:100px}
+      .tbtn{padding:10px 8px}
+      .tbtn.big{padding:12px 8px}
+      .side{min-width:unset}
+    }
   </style>
 </head>
 <body>
@@ -135,7 +143,8 @@
 
   <script>
   // ========= Константы =========
-  const COLS = 10, ROWS = 20, SIZE = 32;
+  const COLS = 10, ROWS = 20;
+  let SIZE = 32; // делаем динамическим для мобильной версии
   const DROP_BASE_MS = 1000, SPEED_FACTOR = 0.85;
   const COLORS = { I:'#5dd6ff', J:'#6d88ff', L:'#ffb15d', O:'#ffe45d', S:'#6dff8a', T:'#c07dff', Z:'#ff6d7a', ghost:'rgba(255,255,255,0.18)' };
   const SHAPES = {
@@ -158,13 +167,7 @@
   function bag(){const keys=Object.keys(SHAPES);let bag=[];function refill(){bag=keys.slice();for(let i=bag.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[bag[i],bag[j]]=[bag[j],bag[i]]}}refill();return()=>{if(!bag.length)refill();return bag.pop()}}
 
   // ========= Звук (WebAudio) =========
-  class Sound {
-    constructor(){this.ctx=null;this.enabled=false}
-    ensure(){if(!this.ctx){this.ctx=new (window.AudioContext||window.webkitAudioContext)()}if(this.ctx.state==='suspended')this.ctx.resume()}
-    toggle(on){this.enabled=on; if(on) this.ensure()}
-    beep(freq=440,dur=0.06,type='square',gain=0.03){if(!this.enabled)return;this.ensure();const t=this.ctx.currentTime;const o=this.ctx.createOscillator();const g=this.ctx.createGain();o.type=type;o.frequency.setValueAtTime(freq,this.ctx.currentTime);g.gain.setValueAtTime(gain,this.ctx.currentTime);g.gain.exponentialRampToValueAtTime(0.0001,t+dur);o.connect(g).connect(this.ctx.destination);o.start();o.stop(t+dur)}
-    seq(list){let t=0;for(const [f,d,g=0.03] of list){setTimeout(()=>this.beep(f,d,'square',g),t*1000);t+=d*0.82}}
-  }
+  class Sound { constructor(){this.ctx=null;this.enabled=false} ensure(){ if(!this.ctx){ this.ctx=new (window.AudioContext||window.webkitAudioContext)() } if(this.ctx.state==='suspended') this.ctx.resume() } toggle(on){this.enabled=on; if(on) this.ensure()} beep(freq=440,dur=0.06,type='square',gain=0.03){if(!this.enabled)return;this.ensure();const t=this.ctx.currentTime;const o=this.ctx.createOscillator();const g=this.ctx.createGain();o.type=type;o.frequency.setValueAtTime(freq,this.ctx.currentTime);g.gain.setValueAtTime(gain,this.ctx.currentTime);g.gain.exponentialRampToValueAtTime(0.0001,t+dur);o.connect(g).connect(this.ctx.destination);o.start();o.stop(t+dur)} seq(list){let t=0;for(const [f,d,g=0.03] of list){setTimeout(()=>this.beep(f,d,'square',g),t*1000);t+=d*0.82}} }
   const SND = new Sound();
 
   // ========= Состояние =========
@@ -179,7 +182,24 @@
   const nextCanvas=$('#next'), nextCtx=nextCanvas.getContext('2d');
   const holdCanvas=$('#hold'), holdCtx=holdCanvas.getContext('2d');
 
-  function drawCell(ctx2,gx,gy,color,size=SIZE){const x=gx*size,y=gy*size;ctx2.fillStyle=color;ctx2.fillRect(x+1,y+1,size-2,size-2);ctx2.fillStyle='rgba(255,255,255,.06)';ctx2.fillRect(x+1,y+1,size-2,4);ctx2.fillStyle='rgba(0,0,0,.15)';ctx2.fillRect(x+1,y+size-6,size-2,5)}
+  // Динамический ресайз под мобильные
+  function resizeBoard(){
+    const dpr = Math.max(1, Math.floor(window.devicePixelRatio||1));
+    // Доступная ширина: если левая колонка одна — почти весь экран; иначе ширина канваса контейнера
+    const isNarrow = window.innerWidth <= 900;
+    const maxW = isNarrow ? Math.min(window.innerWidth-32, 520) : 320; // ограничим, чтобы не распухал
+    const maxH = isNarrow ? Math.min(window.innerHeight-220, 800) : 640; // оставим место под панели
+    const cellByW = Math.floor(maxW / COLS);
+    const cellByH = Math.floor(maxH / ROWS);
+    SIZE = Math.max(14, Math.min(40, Math.min(cellByW, cellByH))); // 14–40 px
+    const w = COLS*SIZE, h = ROWS*SIZE;
+    // физический размер с учётом DPR
+    boardCanvas.width = w * dpr; boardCanvas.height = h * dpr;
+    boardCanvas.style.width = w+"px"; boardCanvas.style.height = h+"px";
+    ctx.setTransform(dpr,0,0,dpr,0,0);
+  }
+
+  function drawCell(ctx2,gx,gy,color){const x=gx*SIZE,y=gy*SIZE;ctx2.fillStyle=color;ctx2.fillRect(x+1,y+1,SIZE-2,SIZE-2);ctx2.fillStyle='rgba(255,255,255,.06)';ctx2.fillRect(x+1,y+1,SIZE-2,Math.max(3,Math.floor(SIZE*0.12)));ctx2.fillStyle='rgba(0,0,0,.15)';ctx2.fillRect(x+1,y+SIZE-Math.max(4,Math.floor(SIZE*0.16)),SIZE-2,Math.max(3,Math.floor(SIZE*0.14)))}
   function drawBoard(){ctx.clearRect(0,0,boardCanvas.width,boardCanvas.height);for(let y=0;y<ROWS;y++)for(let x=0;x<COLS;x++)if(board[y][x])drawCell(ctx,x,y,board[y][x])}
   function collides(mat,px,py){for(let y=0;y<mat.length;y++)for(let x=0;x<mat[y].length;x++){if(!mat[y][x])continue;const nx=px+x,ny=py+y; if(nx<0||nx>=COLS||ny>=ROWS)return true; if(ny>=0&&board[ny][nx])return true}return false}
   function merge(){for(let y=0;y<piece.matrix.length;y++)for(let x=0;x<piece.matrix[y].length;x++)if(piece.matrix[y][x]){const by=piece.y+y,bx=piece.x+x;if(by>=0)board[by][bx]=COLORS[piece.key]}}
@@ -197,7 +217,7 @@
   function hardDrop(){let d=0;while(!collides(piece.matrix,piece.x,piece.y+1)){piece.y++;d++}score+=d*2;SND.seq([[196,.05,.04],[392,.05,.04],[784,.05,.04]]);lock()}
   function lock(){merge();clearLines();spawnNext()}
   function spawnNext(){canHold=true;piece.key=nextKey;piece.matrix=cloneMatrix(SHAPES[piece.key]);piece.x=Math.floor((COLS-piece.matrix[0].length)/2);piece.y=-1;nextKey=pick();if(collides(piece.matrix,piece.x,piece.y+1)){gameOver=true;paused=false;showOverlay()}updateSide()}
-  function hold(){if(!canHold)return;const cur=piece.key;if(holdKey===null){holdKey=cur;spawnNext()}else{piece.key=holdKey;piece.matrix=cloneMatrix(SHAPES[piece.key]);piece.x=Math.floor((COLS-piece.matrix[0].length)/2);piece.y=-1;holdKey=cur;if(collides(piece.matrix,piece.x,piece.y+1)){gameOver=true;showOverlay()}}canHold=false;updateSide();SND.beep(520,.05)}
+  function hold(){if(!canHold) return; const cur=piece.key; if(holdKey===null){holdKey=cur; spawnNext()} else { piece.key=holdKey; piece.matrix=cloneMatrix(SHAPES[piece.key]); piece.x=Math.floor((COLS-piece.matrix[0].length)/2); piece.y=-1; holdKey=cur; if(collides(piece.matrix,piece.x,piece.y+1)){gameOver=true; showOverlay()} } canHold=false; updateSide(); SND.beep(520,.05)}
 
   // ========= Игровой цикл =========
   let lastTime=0; function loop(t=0){const dt=t-lastTime;lastTime=t;if(!paused&&!gameOver){dropTimer+=dt;if(dropTimer>=dropInterval){dropTimer=0;softDrop()}}drawBoard(); if(!gameOver) drawPiece(true); requestAnimationFrame(loop)}
@@ -209,7 +229,7 @@
 
   const LB_KEY='tetrisLeaderboardV1';
   function loadLB(){try{const raw=localStorage.getItem(LB_KEY);return raw?JSON.parse(raw):[]}catch(e){return[]}}
-  function saveLB(list){try{localStorage.setItem(LB_KEY,JSON.stringify(list))}catch(e){/* noop */}}
+  function saveLB(list){try{localStorage.setItem(LB_KEY,JSON.stringify(list))}catch(e){}}
   function addRecord(name,scoreV,linesV,levelV){const list=loadLB();const rec={name:String(name||'Игрок').slice(0,24),score:scoreV,lines:linesV,level:levelV,date:new Date().toISOString()};list.push(rec);list.sort((a,b)=>b.score-a.score);saveLB(list.slice(0,10));renderLB()}
   function renderLB(){const list=loadLB();const ol=$('#score-list');ol.innerHTML='';list.forEach((r)=>{const li=document.createElement('li');const d=new Date(r.date);const ds=d.toLocaleDateString();li.textContent=`${r.name} — ${r.score} очк., ${r.lines} линий, ур. ${r.level} · ${ds}`;ol.appendChild(li)})}
 
@@ -263,7 +283,8 @@
   function restart(){for(let y=0;y<ROWS;y++)for(let x=0;x<COLS;x++)board[y][x]=0; score=0;lines=0;level=1;dropInterval=DROP_BASE_MS;dropTimer=0; paused=false;gameOver=false; holdKey=null; canHold=true; pick=bag(); nextKey=pick(); piece.key=nextKey; piece.matrix=cloneMatrix(SHAPES[piece.key]); piece.x=3; piece.y=0; nextKey=pick(); updateSide();}
 
   // ========= Инициализация =========
-  function init(){updateSide(); renderLB(); requestAnimationFrame(loop)}
+  function init(){resizeBoard(); updateSide(); renderLB(); requestAnimationFrame(loop)}
+  window.addEventListener('resize',()=>{const oldSize=SIZE; resizeBoard(); if(SIZE!==oldSize){ /* просто перерисуем; логика остаётся */ } });
   init();
 
   </script>
